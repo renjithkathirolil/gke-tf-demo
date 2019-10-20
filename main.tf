@@ -62,9 +62,6 @@ resource "aws_instance" "test" {
     ]
   }
 
-  tags {
-    Name = "new_test"
-  }
 }
 output "public_instance_id" {
   value = "${aws_instance.test.id}"
