@@ -3,6 +3,9 @@ provider "aws" {
   secret_key = "eQ4FqLpfrlK7PZt09r6B7qZnL30/+OGX+d1Z74oW"
   region     = "us-east-1"
 }
+resource "aws_ecs_cluster" "foo" {
+  name = "white-hart"
+}
 resource "aws_ecs_service" "mongo" {
   name            = "mongodb"
   cluster         = "${aws_ecs_cluster.foo.id}"
