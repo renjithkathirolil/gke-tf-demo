@@ -1,75 +1,29 @@
 provider "aws" {
-  access_key = "xxxxxxxxxxxxxxxxxxxxxxxxx"
-  secret_key = "xxxxxxxxxxxxxxxxxxxxxxxxx"
+  access_key = "AKIA4EALQT3P36LMRS4L"
+  secret_key = "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"
   region     = "us-east-1"
 }
+resource "aws_ecs_service" "mongo" {
+  name            = "mongodb"
+  cluster         = "${aws_ecs_cluster.foo.id}"
+  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+  desired_count   = 3
+  iam_role        = "${aws_iam_role.foo.arn}"
+  depends_on      = ["aws_iam_role_policy.foo"]
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  ordered_placement_strategy {
+    type  = "binpack"
+    field = "cpu"
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+  load_balancer {
+    target_group_arn = "${aws_lb_target_group.foo.arn}"
+    container_name   = "mongo"
+    container_port   = 8080
   }
 
-  owners = ["099720109477"] # Canonical
-}
-
-resource "aws_security_group" "default" {
-  name        = "terraform_example"
-  description = "Used in the terraform"
-
-  # SSH access from anywhere
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  placement_constraints {
+    type       = "memberOf"
+    expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
   }
-
-  # HTTP access from the VPC
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # outbound internet access
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_instance" "test" {
-  ami           = "${data.aws_ami.ubuntu.id}"
-  instance_type = "t2.micro"
-    vpc_security_group_ids = ["${aws_security_group.default.id}"]
-  key_name = "teraform"
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt-get -y update",
-      "sudo apt-get -y install nginx",
-      "sudo service nginx start",
-    ]
-  }
-
-}
-output "public_instance_id" {
-  value = "${aws_instance.test.id}"
-}
-
-output "public_instance_ip" {
-  value = "${aws_instance.test.public_ip}"
-}
-output "address" {
-  value = "${aws_instance.test.public_dns}"
 }
